@@ -1,15 +1,23 @@
-import pg from 'pg';
+import "dotenv/config";
+import pkg from "pg";
 
-const pool = new pg.Pool({
+const { Pool } = pkg;
+
+const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  max:10
 });
 
-pool.on('error', (err) =>{
-    console.error(err, "\nSomething unexpected happened while connecting with the database")
-    process.exit(-1);
-})
+export const connectDB = async () => {
+  try {
+    const client = await pool.connect();
+    await client.query("SELECT 1");
+    client.release();
+    console.log("Database connected successfully");
+  } catch (error) {
+    console.error("Database connection failed:\n", error.message);
+    process.exit(1);
+  }
+};
 
-export {pool};
+export default pool;
