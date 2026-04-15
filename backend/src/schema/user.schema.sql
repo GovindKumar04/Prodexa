@@ -17,6 +17,8 @@
         profile_image_url TEXT,
         is_active BOOLEAN NOT NULL DEFAULT true,
 
+        refresh_token TEXT,
+        
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );

@@ -2,6 +2,23 @@ import ApiError from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../utils/constants.js";
 import bcrypt from "bcrypt";
 import pool from "../configs/db.js";
+import jwt from "jsonwebtoken";
+
+export const genrateAccessToken = (user) => {
+  return jwt.sign(
+    { id: user.id, user_name: user.user_name, user_email: user.user_email },
+    process.env.ACCESS_TOKEN,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN,
+    },
+  );
+};
+
+export const genrateRefreshToken = (user) => {
+  return jwt.sign({ id: user.id }, process.env.REFRESH_TOKEN, {
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
+  });
+};
 
 export const registerUser = async ({
   user_name,
@@ -61,4 +78,28 @@ export const registerUser = async ({
     );
   }
   return result.rows[0];
+};
+
+export const loginUser = async ({ user_email, user_password }) => {
+  if (!user_email?.trim() || !user_password?.trim()) {
+    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "All fields are required.");
+  }
+
+  const normalizedEmail = user_email.trim().toLowerCase();
+  const searchQuery = `SELECT * FROM users WHERE user_email=$1 LIMIT 1`;
+  const result = await pool.query(searchQuery, [normalizedEmail]);
+  if (result.rows.length === 0)
+    throw new ApiError(HTTP_STATUS.NOT_FOUND, "This email is not registered");
+
+  const user = result.rows[0];
+  const isPasswordCorrect = await bcrypt.compare(
+    user_password,
+    user.user_password,
+  );
+
+  if (!isPasswordCorrect)
+    throw new ApiError(HTTP_STATUS.UNAUTHORIZED, "Invalid email or password");
+
+  const { user_password: _, ...safeUser } = user;
+  return safeUser;
 };
